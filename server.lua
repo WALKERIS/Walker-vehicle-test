@@ -1,0 +1,1 @@
+print("ir vel tas server side nereikalingas")
