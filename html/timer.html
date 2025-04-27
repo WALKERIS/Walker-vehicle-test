@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(66,135,245,0.4); }
+            50% { box-shadow: 0 0 20px rgba(66,135,245,0.6); }
+            100% { box-shadow: 0 0 10px rgba(66,135,245,0.4); }
+        }
+
+        @keyframes scaleProgress {
+            0% { transform: scaleX(0); }
+            100% { transform: scaleX(1); }
+        }
+
+        body {
+            display: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .timer-container {
+            position: absolute;
+            bottom: -1%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(45deg, #1a1a1a67, #2d2d2d5d);
+            border-radius: 7px;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: pulseGlow 2s infinite;
+            overflow: hidden;
+        }
+
+        .timer-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, 
+                rgba(66,135,245,0.2),
+                rgba(66,135,245,0.4),
+                rgba(66,135,245,0.2));
+            animation: gradientShift 6s ease infinite;
+            z-index: 0;
+        }
+
+        .inner-content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(25, 25, 25, 0);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 100%;
+            background: #ffffffcc;
+            transform-origin: left center;
+            animation: scaleProgress 1s ease-out forwards;
+        }
+
+        .timer-text {
+            color: white;
+            font-family: 'Arial';
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(66,135,245,0.5);
+            margin: 10px 0;
+            animation: textPulse 1s infinite alternate;
+        }
+
+        .status-text {
+            color: rgba(255,255,255,0.8);
+            font-family: 'Arial';
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @keyframes textPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .floating-dots {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(66,135,245,0.6);
+            border-radius: 50%;
+            animation: float 4s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container">
+        <div class="floating-dots">
+            <!-- Add some animated background dots -->
+            <div class="dot" style="top:10%; left:20%"></div>
+            <div class="dot" style="top:30%; left:70%"></div>
+            <div class="dot" style="top:70%; left:40%"></div>
+        </div>
+        <div class="inner-content">
+            <div class="status-text">Testuoji...</div>
+            <div class="timer-text" id="timer">40</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="status-text">liko...</div>
+        </div>
+    </div>
+
+    <script>
+        const timerText = document.getElementById('timer');
+        const progressFill = document.querySelector('.progress-fill');
+        let currentAnimation = null;
+
+        function startProgressAnimation(duration) {
+            if(currentAnimation) currentAnimation.cancel();
+            
+            currentAnimation = progressFill.animate([
+                { transform: 'scaleX(1)' },
+                { transform: 'scaleX(0)' }
+            ], {
+                duration: duration * 1000,
+                easing: 'linear'
+            });
+        }
+
+        window.startTimer = (duration) => {
+            let timeLeft = duration;
+            timerText.textContent = duration;
+            document.body.style.display = 'block';
+            
+            startProgressAnimation(duration);
+
+            const interval = setInterval(() => {
+                timeLeft--;
+                timerText.textContent = timeLeft;
+
+                if(timeLeft <= 0) {
+                    clearInterval(interval);
+                    document.body.style.display = 'none';
+                    fetch(`https://${GetParentResourceName()}/timerCompleted`);
+                }
+            }, 1000);
+        }
+
+        window.addEventListener('message', (event) => {
+            if(event.data.type === 'SHOW_TIMER') {
+                window.startTimer(event.data.duration);
+            }
+            if(event.data.type === 'HIDE_TIMER') {
+                document.body.style.display = 'none';
+                if(currentAnimation) currentAnimation.cancel();
+            }
+        });
+    </script>
+</body>
+</html>
